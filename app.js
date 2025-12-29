@@ -35,6 +35,9 @@ class App {
             }
         });
         document.getElementById('viewDatasheetBtn').addEventListener('click', () => this.viewDatasheet());
+        document.getElementById('importBtn').addEventListener('click', () => {
+            window.location.href = 'import.html';
+        });
 
         // Search
         document.getElementById('toggleSearchBtn').addEventListener('click', () => this.toggleSearch());
