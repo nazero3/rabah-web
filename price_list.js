@@ -371,52 +371,100 @@ class PriceListManager {
             }
             
             if (!templateData) {
-                // Ask user to select file manually
-                const userConfirmed = confirm(
-                    'لم يتم العثور على ملف format.docx تلقائياً.\n\n' +
-                    'يرجى اختيار ملف format.docx يدوياً.\n\n' +
-                    'Template file not found automatically.\n\n' +
-                    'Please select format.docx file manually.'
-                );
+                // Show a modal with a button to select the file manually
+                // This ensures the file input click is directly from user action
+                const modal = document.createElement('div');
+                modal.className = 'modal';
+                modal.style.display = 'flex';
+                modal.innerHTML = `
+                    <div class="modal-content" style="max-width: 500px;">
+                        <h2>اختيار ملف القالب / Select Template File</h2>
+                        <p style="margin: 20px 0;">
+                            لم يتم العثور على ملف format.docx تلقائياً.<br>
+                            يرجى اختيار ملف format.docx يدوياً.<br><br>
+                            Template file not found automatically.<br>
+                            Please select format.docx file manually.
+                        </p>
+                        <div class="modal-actions">
+                            <button id="selectTemplateBtn" class="btn btn-primary">اختيار الملف / Select File</button>
+                            <button id="cancelTemplateBtn" class="btn btn-secondary">إلغاء / Cancel</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
                 
-                if (userConfirmed) {
-                    // Create file input for user to select template
-                    return new Promise((resolve, reject) => {
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.accept = '.docx';
-                        input.onchange = async (e) => {
-                            const file = e.target.files[0];
-                            if (file) {
+                // Wait for user to click the button
+                await new Promise((resolve, reject) => {
+                    const selectBtn = document.getElementById('selectTemplateBtn');
+                    const cancelBtn = document.getElementById('cancelTemplateBtn');
+                    
+                    // Create file input
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.docx';
+                    input.style.display = 'none';
+                    document.body.appendChild(input);
+                    
+                    let resolved = false;
+                    
+                    // Handle file selection
+                    input.addEventListener('change', async (e) => {
+                        if (resolved) return;
+                        resolved = true;
+                        
+                        const file = e.target.files[0];
+                        if (file) {
+                            try {
                                 const reader = new FileReader();
                                 reader.onload = async (event) => {
                                     try {
+                                        document.body.removeChild(modal);
+                                        document.body.removeChild(input);
                                         await this.processTemplate(event.target.result, customerName, date);
                                         resolve();
                                     } catch (err) {
                                         console.error('Processing error:', err);
+                                        document.body.removeChild(modal);
+                                        document.body.removeChild(input);
                                         alert('خطأ في المعالجة: ' + err.message + '\n\nProcessing error: ' + err.message);
                                         reject(err);
                                     }
                                 };
                                 reader.onerror = (err) => {
                                     console.error('FileReader error:', err);
+                                    document.body.removeChild(modal);
+                                    document.body.removeChild(input);
                                     alert('خطأ في قراءة الملف / Error reading file');
                                     reject(err);
                                 };
                                 reader.readAsArrayBuffer(file);
-                            } else {
-                                reject(new Error('لم يتم اختيار ملف / No file selected'));
+                            } catch (err) {
+                                document.body.removeChild(modal);
+                                document.body.removeChild(input);
+                                reject(err);
                             }
-                        };
-                        input.oncancel = () => {
-                            reject(new Error('تم الإلغاء / Cancelled'));
-                        };
+                        } else {
+                            document.body.removeChild(modal);
+                            document.body.removeChild(input);
+                            reject(new Error('لم يتم اختيار ملف / No file selected'));
+                        }
+                    }, { once: true });
+                    
+                    // Button click handlers
+                    selectBtn.addEventListener('click', () => {
                         input.click();
                     });
-                } else {
-                    throw new Error('تم الإلغاء / Cancelled');
-                }
+                    
+                    cancelBtn.addEventListener('click', () => {
+                        if (!resolved) {
+                            resolved = true;
+                            document.body.removeChild(modal);
+                            document.body.removeChild(input);
+                            reject(new Error('تم الإلغاء / Cancelled'));
+                        }
+                    });
+                });
+                return; // Exit early
             }
             
             // Process the template
