@@ -474,10 +474,8 @@ class App {
     }
 
     showPriceListWindow() {
-        // This would open a price list window
-        // For now, show a simple implementation
-        alert('Price list feature - to be implemented with Word export');
-        // TODO: Implement full price list window
+        // Open price list window in new tab/window
+        window.open('price_list.html', '_blank', 'width=1400,height=800');
     }
 }
 
